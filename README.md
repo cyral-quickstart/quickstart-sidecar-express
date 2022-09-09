@@ -8,26 +8,34 @@ Install with a single command
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-poc/main/install-poc.sh)"
 ```
 
-# Deploy an Instance
+# Cloud Deployment Instructions
+
+The above command will work on just about any system, but you can follow the below directions to create a new instance for the sidecar.
 
 ## AWS EC2
 
 1. Go to [EC2 Service](https://console.aws.amazon.com/ec2)
 1. Select [Launch Instance](https://console.aws.amazon.com/ec2/v2/home#LaunchInstances) and provide the following info
     1. Name: Provide something meaningful like CyralSidecar
-    1. Amazon Machine Image (AMI): The default Amazon Linux image and options are fine, but most images should work fine
+    1. Amazon Machine Image (AMI): The default Amazon Linux image and options are fine, but most images should work
     1. Instance Type: Our recommended flavor is M5.large, but a T3 or T2 large will work well for a POC as well
     1. Key Pair: Select or create one
-    1. Security Group: You can use a precreated one or create a new one. You'll want to make sure it has SSH access. *Make note of the name*, we'll have to modify it for the DB Ports
+    1. Network Settings: Utilize the Edit button on the section header to create a new Security Group for this POC
+        1. Make sure Create Security Group is selected
+        1. Security Group Name: Provide a useful name like cyral-sidecar-poc
+        1. Description: This is required so provide a description
+        1. Inbound Security Rules:
+            1. ssh - This rule should already exist, but review the Source Type and Source to make sure its appropriate for your environment
+            1. Add Security Group Rule: One per DB type you'd like to test 
+                1. Type: Custom TCP
+                1. Port Range: This is the port or range of ports where database clients will connect to this database through the Cyral sidecar
+                1. Source Type / Source: Provide approrpriate values that will allow your database clients to connect to this port
     1. Launch Instance!
-1. Update the [Security Group](https://console.aws.amazon.com/ec2/v2/home#SecurityGroups) ports for the desired database
-    1. Find the Secrity Group created above
-    1. Edit Inbound Rules
-    1. Provide the Port and CIDR 
-1. SSH to the new instance and Install the sidecar with the above command.
-# Advanced Setup
+1. SSH to the new instance and install the sidecar with the above command
 
-The script will bypass all prompts if the values are provided by environment vairables. Addtional variables are available for the Logging Setup.
+# Advanced Setup Options
+
+The script will bypass all prompts if the values are provided by environment variables. Addtional variables are available for the Logging Setup.
 
 |Name|Description|
 |---|---|
