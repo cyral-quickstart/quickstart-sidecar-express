@@ -5,10 +5,20 @@ defaultSidecarVersion="v2.34.0"
 ###
 if [ -z "$containerRegistry" ]; then
     containerRegistry="gcr.io/cyralinc"
+else
+    echo "containerRegistry enviroment variable found, using '$containerRegistry'"
 fi
 
 if [ -z "$fluentBitImage" ]; then
     fluentBitImage="fluent/fluent-bit:latest"
+else
+    echo "fluentBitImage enviroment variable found, using '$fluentBitImage"
+fi
+
+if [ -z "$fluentConfigFile" ]; then
+    fluentConfigFile="fluent.conf"
+else
+    echo "fluentConfigFile enviroment variable found, using '$fluentConfigFile'"
 fi
 ###
 
@@ -22,23 +32,6 @@ fluentConfig="
 
 "
 
-containerCheck() {
-    NEXT_WAIT_TIME=0
-    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(dockercmd inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
-        printf "."
-        (( NEXT_WAIT_TIME++ ))
-        sleep 1
-    done
-    echo ""
-    [ "$NEXT_WAIT_TIME" -eq 5 ]
-}
-
-containerStopAndRemove() {
-    dockercmd stop "$1" >/dev/null 2>&1
-    dockercmd rm "$1" >/dev/null 2>&1
-}
-
-
 # validate/install commands
 installs=""
 dependencies=("docker" "jq")
@@ -50,16 +43,18 @@ if [ -n "$installs" ]; then
     [ -n "$(command -v yum)" ] && pcmd=yum
     [ -n "$(command -v apt-get)" ] && pcmd=apt-get
     if [ -z "$pcmd" ]; then
-        printf "\nPlease install the following first: $installs"
+        printf "\nPlease install the following first: %s" "$installs"
         exit 1
     fi
     if ! outInstall=$(sudo $pcmd install -y $installs 2>&1); then
-        printf "\nProblem installing tools!\n"
+        printf "\nProblem installing tools!"
+        printf "\nPlease make sure the following tools are installed and run the script again: %s" "$installs"
+        printf "\n Install Failure message:\n"
         echo "${outInstall}"
         exit 1
     fi
     printf "."
-    if [[ "$installs" =~ docker ]]; then
+    if [[ $(docker ps 2>&1) =~ "daemon running" ]]; then
         if ! outEnable=$(sudo systemctl enable docker 2>&1); then
             printf "\nProblem enabling docker!\n"
             echo "$outEnable"
@@ -80,6 +75,22 @@ shopt -s expand_aliases
 alias dockercmd="docker"
 if ! dockercmd ps &> /dev/null; then alias dockercmd="sudo docker";fi
 
+containerCheck() {
+    NEXT_WAIT_TIME=0
+    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(dockercmd inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
+        printf "."
+        (( NEXT_WAIT_TIME++ ))
+        sleep 1
+    done
+    echo ""
+    [ "$NEXT_WAIT_TIME" -eq 5 ]
+}
+
+containerStopAndRemove() {
+    dockercmd stop "$1" >/dev/null 2>&1
+    dockercmd rm "$1" >/dev/null 2>&1
+}
+
 echo "Sidecar Setup"
 echo "============="
 echo "From the controlplane, click Sidecars and click the + for a new sidecar."
@@ -88,31 +99,45 @@ echo "Provide a name and click Generate again, you will be prompted to provide t
 echo "============="
 
 # gather input
-if [ -z "$controlplaneUrl" ]; then
-    read -r -p "Control Plane URL (copy/paste current control plane url): " controlplaneUrl
+if [ -z "$controlPlaneUrl" ]; then
+    read -r -p "Control Plane URL (copy/paste current control plane url): " controlPlaneUrl
+else
+    echo "controlPlaneUrl enviroment variable found, using '$controlPlaneUrl'"
 fi
+
 if [ -z "$sidecarId" ]; then
     read -r -p "Sidecar ID: " sidecarId
+else
+    echo "sidecarId enviroment variable found, using '$sidecarId'"
 fi
+
 if [ -z "$sidecarVersion" ]; then
     read -r -p "Sidecar Version (default: $defaultSidecarVersion): " sidecarVersion
     if [ -z "$sidecarVersion" ]; then
         sidecarVersion="$defaultSidecarVersion"
     fi
+else
+    echo "sidecarVersion enviroment variable found, using '$sidecarVersion'"
 fi
-if [[ -z $clientId || -z $clientSecret ]] && [[ -z $secretBlob ]]; then
+
+if [[ -n "$secretBlob" ]]; then
+    echo "secretBlob enviroment variable found, using that"
+elif [[ -n "$clientId" && -n "$clientSecret" ]]; then
+    echo "clientId and clientSecret enviroment variables found, client ID being used '$clientId'"
+else
     printf "Secret Blob: "
     secretBlob=$(sed '/}/q') # specific to expected inputs
 fi
 
-logDriver="json-file"
 if [ -n "$outputConfig" ]; then
-    fluentConfig="${fluentConfig}${outputConfig}"
+    echo "outputConfig found, generating configuration file"
     logDriver="fluentd"
+    fluentConfig="${fluentConfig}${outputConfig}"
+    echo "$fluentConfig" > "$fluentConfigFile"
 fi
 
 echo "Parsing input"
-controlplaneUrl=$(echo "$controlplaneUrl" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+controlPlaneUrl=$(echo "$controlPlaneUrl" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 
 if [ -z "$clientId" ]; then
     clientId=$(echo "$secretBlob" | jq -r  -e .clientId)
@@ -129,12 +154,7 @@ fi
 endpoint=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
 if [ "$logDriver" = "fluentd" ]; then
-    echo "Starting Logger"
-    fluentConfigFile="fluent.conf"
-    if [[ -e "$fluentConfigFile" ]]; then
-        rm $fluentConfigFile
-    fi
-    echo "$fluentConfig" > "$fluentConfigFile"
+    echo "Starting Logger"  
     containerStopAndRemove "fluent"
     if ! outFluent=$(dockercmd run -d --name fluent --restart=unless-stopped \
                     -p 24224:24224 \
@@ -174,11 +194,11 @@ fi
 containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
-if ! containerId=$(dockercmd run -d --name sidecar --network=host --log-driver=$logDriver --restart=unless-stopped \
+if ! containerId=$(dockercmd run -d --name sidecar --network=host --log-driver=${logDriver:=json-file} --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$sidecarId" \
     -e CYRAL_SIDECAR_CLIENT_ID="$clientId" \
     -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
-    -e CYRAL_CONTROL_PLANE="$controlplaneUrl" \
+    -e CYRAL_CONTROL_PLANE="$controlPlaneUrl" \
     -e CYRAL_SIDECAR_ENDPOINT="$endpoint" \
     "${containerRegistry}/cyral-sidecar:${sidecarVersion}" 2>&1) ; then
 
