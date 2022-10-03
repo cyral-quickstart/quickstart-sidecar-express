@@ -129,6 +129,17 @@ else
     secretBlob=$(sed '/}/q') # specific to expected inputs
 fi
 
+## Attach an env file if required for secret injection for testing
+if [[ -z "$envFilePath" ]]; then
+    if [[ -z "$sidecarVersion" ]]; then # if sidecarVersion is set we wont prompt assuming automation
+        read -r -p "Env File Path (blank if not required): " envFilePath
+    else
+        echo "sidecarVersion set, skipping prompt for envFilePath"
+    fi
+else
+    echo "envFilePath enviroment variable found, using '$envFilePath'"
+fi
+
 if [ -n "$outputConfig" ]; then
     echo "outputConfig found, generating configuration file"
     logDriver="fluentd"
@@ -150,6 +161,12 @@ if [ -n "$secretBlob" ]; then
     registryKey=$(echo "$secretBlob" | jq -r -e .registryKey)
 fi
 
+if [ -n "$envFilePath" ]; then
+    envFilePath=$(realpath "$envFilePath")
+    if [[ -r "$envFilePath" ]]; then
+        envFileParam=("--env-file" "$envFileParam")
+    fi
+fi
 
 endpoint=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
@@ -200,6 +217,7 @@ if ! containerId=$(dockercmd run -d --name sidecar --network=host --log-driver=$
     -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
     -e CYRAL_CONTROL_PLANE="$controlPlaneUrl" \
     -e CYRAL_SIDECAR_ENDPOINT="$endpoint" \
+    "${envFileParam[@]}" \
     "${containerRegistry}/cyral-sidecar:${sidecarVersion}" 2>&1) ; then
 
     echo "Problem starting sidecar!"
