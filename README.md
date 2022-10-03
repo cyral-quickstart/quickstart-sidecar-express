@@ -5,7 +5,7 @@ A quick start for a POC to get a simple sidecar online quickly!
 Install with a single command
 
 ```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-poc/main/install-poc.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-poc/main/install-poc.sh)"
 ```
 
 # Cloud Deployment Instructions
