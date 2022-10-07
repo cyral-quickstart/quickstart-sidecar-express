@@ -46,10 +46,23 @@ if [ -n "$installs" ]; then
         printf "\nPlease install the following first: %s" "$installs"
         exit 1
     fi
+    if [ "$pcmd" = "apt-get" ]; then
+        if ! outUpdate=$(sudo $pcmd update 2>&1); then
+            printf "\nProblem updating!"
+            printf "\n Install Failure Message:\n"
+            echo "${outUpdate}"
+            exit 1
+        fi
+    fi
+    printf "."
+
+    # Some OS's will have docker under the name docker.io, having both will successfully install docker without error
+    [[ "$installs" =~ "docker" && "$pcmd" = "apt-get" ]] && installs+="docker.io"
+    
     if ! outInstall=$(sudo $pcmd install -y $installs 2>&1); then
         printf "\nProblem installing tools!"
         printf "\nPlease make sure the following tools are installed and run the script again: %s" "$installs"
-        printf "\n Install Failure message:\n"
+        printf "\n Install Failure Message:\n"
         echo "${outInstall}"
         exit 1
     fi
@@ -71,13 +84,9 @@ if [ -n "$installs" ]; then
     printf ".\n\n"
 fi
 
-shopt -s expand_aliases
-alias dockercmd="docker"
-if ! dockercmd ps &> /dev/null; then alias dockercmd="sudo docker";fi
-
 containerCheck() {
     NEXT_WAIT_TIME=0
-    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(dockercmd inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
+    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(sudo docker inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
         printf "."
         (( NEXT_WAIT_TIME++ ))
         sleep 1
@@ -87,8 +96,8 @@ containerCheck() {
 }
 
 containerStopAndRemove() {
-    dockercmd stop "$1" >/dev/null 2>&1
-    dockercmd rm "$1" >/dev/null 2>&1
+    sudo docker stop "$1" >/dev/null 2>&1
+    sudo docker rm "$1" >/dev/null 2>&1
 }
 
 echo "Sidecar Setup"
@@ -117,6 +126,7 @@ if [ -z "$sidecarVersion" ]; then
         sidecarVersion="$defaultSidecarVersion"
     fi
 else
+    envFilePrompt="false" # use this to block prompting for env file related to using this script in an automated way
     echo "sidecarVersion enviroment variable found, using '$sidecarVersion'"
 fi
 
@@ -131,7 +141,7 @@ fi
 
 ## Attach an env file if required for secret injection for testing
 if [[ -z "$envFilePath" ]]; then
-    if [[ -z "$sidecarVersion" ]]; then # if sidecarVersion is set we wont prompt assuming automation
+    if [[ -z "$envFilePrompt" ]]; then # if sidecarVersion is set we wont prompt assuming automation
         read -r -p "Env File Path (blank if not required): " envFilePath
     else
         echo "sidecarVersion set, skipping prompt for envFilePath"
@@ -157,6 +167,7 @@ fi
 if [ -z "$clientSecret" ]; then
     clientSecret=$(echo "$secretBlob" | jq -r -e .clientSecret)
 fi
+
 if [ -n "$secretBlob" ]; then
     registryKey=$(echo "$secretBlob" | jq -r -e .registryKey)
 fi
@@ -164,16 +175,25 @@ fi
 if [ -n "$envFilePath" ]; then
     envFilePath=$(realpath "$envFilePath")
     if [[ -r "$envFilePath" ]]; then
-        envFileParam=("--env-file" "$envFileParam")
+        envFileParam=("--env-file" "$envFilePath")
+        echo "Injectig env file '${envFileParam[1]}'"
+    else
+        echo "Unable to read/mount the env file, '${envFilePath}', skipping!!"
     fi
 fi
 
-endpoint=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+if [ -z "$endpoint" ]; then
+    if ! endpoint=$(curl --fail --silent --connect-timeout .5 http://169.254.169.254/latest/meta-data/public-ipv4); then
+        endpoint=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    fi
+else
+    echo "endpoint enviroment variable found, using '$endpoint'"
+fi
 
 if [ "$logDriver" = "fluentd" ]; then
     echo "Starting Logger"  
     containerStopAndRemove "fluent"
-    if ! outFluent=$(dockercmd run -d --name fluent --restart=unless-stopped \
+    if ! outFluent=$(sudo docker run -d --name fluent --restart=unless-stopped \
                     -p 24224:24224 \
                     -v "${PWD}/$fluentConfigFile:/etc/$fluentConfigFile" \
                     "$fluentBitImage" \
@@ -194,7 +214,7 @@ fi
 
 if [ -n "$registryKey" ]; then
     echo "Accessing resources"
-    if ! dLogin=$(echo "$registryKey" | base64 --decode | dockercmd login -u _json_key --password-stdin "$containerRegistry" 2>&1); then
+    if ! dLogin=$(echo "$registryKey" | base64 --decode | sudo docker login -u _json_key --password-stdin "$containerRegistry" 2>&1); then
         echo "Problem logging in to registry!"
         echo "$dLogin"
         exit 1
@@ -202,7 +222,7 @@ if [ -n "$registryKey" ]; then
 fi
 
 echo "Downloading sidecar version ${sidecarVersion}"
-if ! outPull=$(dockercmd pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
+if ! outPull=$(sudo docker pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
     echo "Problem pulling images!"
     echo "$outPull"
     exit 1
@@ -211,7 +231,7 @@ fi
 containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
-if ! containerId=$(dockercmd run -d --name sidecar --network=host --log-driver=${logDriver:=json-file} --restart=unless-stopped \
+if ! containerId=$(sudo docker run -d --name sidecar --network=host --log-driver=${logDriver:=json-file} --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$sidecarId" \
     -e CYRAL_SIDECAR_CLIENT_ID="$clientId" \
     -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
