@@ -69,6 +69,21 @@ The script will bypass all prompts if the values are provided by environment var
 |clientSecret|From json blob|
 |registryKey| From json blob, Base64 encoded docker login credentials|
 
+# Environment File for Database Accounts
+If you are using local credentails for testing, as part of the install script you will have the option to use an enviroment file to provide those credentials to the sidecar.
+
+The value of the secret should be in the following format
+```
+{"username":"someuser","password":"somepassword","databaseName":"db1"}
+```
+
+An example of what the env file should look like:
+```
+REPO_DATA={"username":"someuser","password":"somepassword","databaseName":"db1"}
+```
+
+More details can be found [here](https://cyral.com/docs/v3.0/manage-user-access/database-accounts/#procedure) under the Environment Variable tab.
+
 # Logging Option
 
 By default standard docker logging will apply.
