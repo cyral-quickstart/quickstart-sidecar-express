@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-defaultSidecarVersion="v2.34.0"
+defaultSidecarVersion="v3.0.1"
 
 # Optional Parameters
 ###
