@@ -62,6 +62,8 @@ The script will bypass all prompts if the values are provided by environment var
 |sidecarVersion|Version to use for the sidecar|
 |envFilePath|Environment variable file to use|
 |endpoint|Address to advertise to the CP for configuration|
+|controlPlaneHttpsPort|Port for controlplane communication, defaults to 443|
+|controPlaneGrpcPort|Port for controlplane communication, defaults to 443|
 |---|---|
 |secretBlob| Json Blob from Sidecar creation|
 |---|---|
