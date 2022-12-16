@@ -221,6 +221,15 @@ if [ -n "$registryKey" ]; then
     fi
 fi
 
+# Port selection
+# if not set, default to 443, older versions use 8000 and 9080 respectively
+if [ -z "$controlPlaneHttpsPort" ]; then
+    controlPlaneHttpsPort=443
+fi
+if [ -z "$controPlaneGrpcPort" ]; then
+    controPlaneGrpcPort=443
+fi
+
 echo "Downloading sidecar version ${sidecarVersion}"
 if ! outPull=$(sudo docker pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
     echo "Problem pulling images!"
@@ -237,6 +246,8 @@ if ! containerId=$(sudo docker run -d --name sidecar --network=host --log-driver
     -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
     -e CYRAL_CONTROL_PLANE="$controlPlaneUrl" \
     -e CYRAL_SIDECAR_ENDPOINT="$endpoint" \
+    -e CYRAL_CONTROL_PLANE_HTTPS_PORT="$controlPlaneHttpsPort"\
+    -e CYRAL_CONTROL_PLANE_GRPC_PORT="$controPlaneGrpcPort"\
     "${envFileParam[@]}" \
     "${containerRegistry}/cyral-sidecar:${sidecarVersion}" 2>&1) ; then
 
@@ -245,7 +256,7 @@ if ! containerId=$(sudo docker run -d --name sidecar --network=host --log-driver
     exit 1
 fi
 
-echo "Sidecar Started, checking for Controleplane connectivity..."
+echo "Sidecar Started, checking for Control Plane connectivity..."
 if ! containerCheck "sidecar"; then
     echo "--> Problem with sidecar! Inspect the logs to diagnose the issue. <--"
 else
