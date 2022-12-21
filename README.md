@@ -8,7 +8,7 @@ Install with a single command
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
 ```
 
-# Cloud Deployment Instructions
+## Cloud Deployment Instructions
 
 The above command will work on just about any system, but you can follow the below directions to create a new instance for the sidecar.
 
@@ -33,6 +33,7 @@ The above command will work on just about any system, but you can follow the bel
                 1. Source Type / Source: Provide approrpriate values that will allow your database clients to connect to this port
     1. Launch Instance!
 1. SSH to the new instance and install the sidecar with the above command
+
 </details>
 
 <details>
@@ -50,7 +51,7 @@ The above command will work on just about any system, but you can follow the bel
 
 </details>
 
-# Advanced Setup Options
+## Advanced Setup Options
 
 The script will bypass all prompts if the values are provided by environment variables. Addtional variables are available for the Logging Setup.
 
@@ -71,7 +72,7 @@ The script will bypass all prompts if the values are provided by environment var
 |clientSecret|From json blob|
 |registryKey| From json blob, Base64 encoded docker login credentials|
 
-# Environment File for Database Accounts
+## Environment File for Database Accounts
 
 If you are using local credentails for testing, as part of the install script you will have the option to use an enviroment file to provide those credentials to the sidecar.
 
@@ -89,9 +90,9 @@ REPO_DATA={"username":"someuser","password":"somepassword","databaseName":"db1"}
 
 More details can be found [here](https://cyral.com/docs/v3.0/manage-user-access/database-accounts/#procedure) under the Environment Variable tab.
 
-# Logging Option
+## Logging Option
 
 By default standard docker logging will apply.
-Logging can be setup as a step in the install script where you will paste the Fluent-Bit output config. 
+Logging can be setup as a step in the install script where you will paste the Fluent-Bit output config.
 
 More info can be found in [LOGGING.md](../main/LOGGING.md)
