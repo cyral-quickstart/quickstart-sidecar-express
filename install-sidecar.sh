@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-defaultSidecarVersion="v3.0.1"
+defaultSidecarVersion="v3.1.2"
 
 # Optional Parameters
 ###
@@ -84,9 +84,23 @@ if [ -n "$installs" ]; then
     printf ".\n\n"
 fi
 
+if ! out=$(docker ps 2>&1); then
+    if ! sout=$(sudo -n docker ps 2>&1); then
+        echo "Unable to run docker! Docker needs to be able to run on its own without sudo, or non-interactively via sudo"
+        echo "Output:"
+        echo "Standard: $out"
+        echo "Sudo: $sout"
+        exit 1
+    else
+        dockercmd="sudo -n docker"
+    fi
+else
+    dockercmd="docker"
+fi
+
 containerCheck() {
     NEXT_WAIT_TIME=0
-    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(sudo docker inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
+    until [ $NEXT_WAIT_TIME -eq 5 ] || [ "$(eval $dockercmd inspect "$1" | jq -r -e '.[].RestartCount')" -ne 0 ]; do
         printf "."
         (( NEXT_WAIT_TIME++ ))
         sleep 1
@@ -96,8 +110,8 @@ containerCheck() {
 }
 
 containerStopAndRemove() {
-    sudo docker stop "$1" >/dev/null 2>&1
-    sudo docker rm "$1" >/dev/null 2>&1
+    eval $dockercmd stop "$1" >/dev/null 2>&1
+    eval $dockercmd rm "$1" >/dev/null 2>&1
 }
 
 echo "Sidecar Setup"
@@ -184,7 +198,7 @@ fi
 
 if [ -z "$endpoint" ]; then
     if ! endpoint=$(curl --fail --silent --connect-timeout .5 http://169.254.169.254/latest/meta-data/public-ipv4); then
-        endpoint=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+        endpoint=$( (hostname -I 2>/dev/null  || echo "localhost") | awk '{print $1}')
     fi
 else
     echo "endpoint enviroment variable found, using '$endpoint'"
@@ -193,8 +207,9 @@ fi
 if [ "$logDriver" = "fluentd" ]; then
     echo "Starting Logger"  
     containerStopAndRemove "fluent"
-    if ! outFluent=$(sudo docker run -d --name fluent --restart=unless-stopped \
+    if ! outFluent=$(eval $dockercmd run -d --name fluent --restart=unless-stopped \
                     -p 24224:24224 \
+                    --log-driver none \
                     -v "${PWD}/$fluentConfigFile:/etc/$fluentConfigFile" \
                     "$fluentBitImage" \
                     -c /etc/$fluentConfigFile 2>&1 \
@@ -214,7 +229,7 @@ fi
 
 if [ -n "$registryKey" ]; then
     echo "Accessing resources"
-    if ! dLogin=$(echo "$registryKey" | base64 --decode | sudo docker login -u _json_key --password-stdin "$containerRegistry" 2>&1); then
+    if ! dLogin=$(echo "$registryKey" | base64 --decode | eval $dockercmd login -u _json_key --password-stdin "$containerRegistry" 2>&1); then
         echo "Problem logging in to registry!"
         echo "$dLogin"
         exit 1
@@ -231,7 +246,7 @@ if [ -z "$controPlaneGrpcPort" ]; then
 fi
 
 echo "Downloading sidecar version ${sidecarVersion}"
-if ! outPull=$(sudo docker pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
+if ! outPull=$(eval $dockercmd pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
     echo "Problem pulling images!"
     echo "$outPull"
     exit 1
@@ -240,7 +255,7 @@ fi
 containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
-if ! containerId=$(sudo docker run -d --name sidecar --network=host --log-driver=${logDriver:=json-file} --restart=unless-stopped \
+if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver=${logDriver:-local --log-opt max-size=500m} --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$sidecarId" \
     -e CYRAL_SIDECAR_CLIENT_ID="$clientId" \
     -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
@@ -260,6 +275,6 @@ echo "Sidecar Started, checking for Control Plane connectivity..."
 if ! containerCheck "sidecar"; then
     echo "--> Problem with sidecar! Inspect the logs to diagnose the issue. <--"
 else
-    echo 'Sidecar successfully online!'
+    echo 'Sidecar successfully started!'
     echo "To check if its has successfully connected to the controlplane go to Sidecar -> your sidecar -> Sidecar Instances"
 fi
