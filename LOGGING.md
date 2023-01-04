@@ -1,12 +1,20 @@
 # Logging Configuration for POC
 
-The install script will allow for a fluent-bit based logging option that can be configured with a standard output 
+The install script will allow for a fluent-bit based logging option that can be configured with a standard output
 
 # Enable Fluent based logging
 
 If you want to use a fluent based config there are two env variables related to this.
 
-`outputConfig` should be supplied to enabled Fluent Bit Logging. The examples below provide some options. 
+`outputConfig` should be supplied to enabled Fluent Bit Logging. The following example would push to standard out. There are example configurations below for some of the standard logging platforms.
+
+```shell
+export outputConfig="""
+[OUTPUT]
+    Name    stdout
+    Match   *
+"""
+```
 
 If you'd like to run a custom image, or an internal image you can use the `fluentBitImage` variable to override the default value of `fluent/fluent-bit:latest`
 

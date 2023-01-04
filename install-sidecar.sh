@@ -209,7 +209,7 @@ if [ "$logDriver" = "fluentd" ]; then
     containerStopAndRemove "fluent"
     if ! outFluent=$(eval $dockercmd run -d --name fluent --restart=unless-stopped \
                     -p 24224:24224 \
-                    --log-driver none \
+                    --log-driver=local --log-opt max-size=500m \
                     -v "${PWD}/$fluentConfigFile:/etc/$fluentConfigFile" \
                     "$fluentBitImage" \
                     -c /etc/$fluentConfigFile 2>&1 \
