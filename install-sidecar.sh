@@ -114,28 +114,50 @@ containerStopAndRemove() {
     eval $dockercmd rm "$1" >/dev/null 2>&1
 }
 
+# pull info from currently running instance
+if inspect=$(eval $dockercmd inspect sidecar 2>/dev/null); then
+    # update default version to currently used version
+    printf "Pulling config from current sidecar deployment...\n\n"
+    defaultSidecarVersion=$(echo "$inspect" | jq -r '.[].Config.Image' | cut -d: -f2)
+    currentEnv=$(echo "$inspect" | jq -r '.[].Config.Env[] | select(startswith("CYRAL_"))')
+    
+fi
+
 echo "Sidecar Setup"
 echo "============="
 echo "From the controlplane, click Sidecars and click the + for a new sidecar."
-echo "Select Custom as the sidecar type, give it a name and click Generate"
+echo "Select Custom as the sidecar type, give it a name and click Generate."
 echo "Provide a name and click Generate again, you will be prompted to provide the values."
+echo "Values within [] will be used if no value is provided."
 echo "============="
 
 # gather input
 if [ -z "$controlPlaneUrl" ]; then
-    read -r -p "Control Plane URL (copy/paste current control plane url): " controlPlaneUrl
+    cCP=$(echo "$currentEnv"| grep 'CYRAL_CONTROL_PLANE=' | cut -d= -f2)
+    if [ -n "$cCP" ]; then
+        read -r -p "Control Plane URL [$cCP]: " controlPlaneUrl
+        if [ -z "$controlPlaneUrl" ]; then controlPlaneUrl=$cCP; fi
+    else
+        read -r -p "Control Plane URL (copy/paste current control plane url): " controlPlaneUrl
+    fi
 else
     echo "controlPlaneUrl enviroment variable found, using '$controlPlaneUrl'"
 fi
 
 if [ -z "$sidecarId" ]; then
-    read -r -p "Sidecar ID: " sidecarId
+    cSID=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_ID=' | cut -d= -f2)
+    if [ -n "$cSID" ]; then
+        read -r -p "Sidecar ID [$cSID]: " sidecarId
+        if [ -z "$sidecarId" ]; then sidecarId=$cSID; fi
+    else
+        read -r -p "Sidecar ID: " sidecarId
+    fi
 else
     echo "sidecarId enviroment variable found, using '$sidecarId'"
 fi
 
 if [ -z "$sidecarVersion" ]; then
-    read -r -p "Sidecar Version (default: $defaultSidecarVersion): " sidecarVersion
+    read -r -p "Sidecar Version [$defaultSidecarVersion]: " sidecarVersion
     if [ -z "$sidecarVersion" ]; then
         sidecarVersion="$defaultSidecarVersion"
     fi
@@ -149,8 +171,19 @@ if [[ -n "$secretBlob" ]]; then
 elif [[ -n "$clientId" && -n "$clientSecret" ]]; then
     echo "clientId and clientSecret enviroment variables found, client ID being used '$clientId'"
 else
-    printf "Secret Blob: "
-    secretBlob=$(sed '/}/q') # specific to expected inputs
+    if [ -n "$inspect" ]; then
+        ccid=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_ID=' | cut -d= -f2)
+        ccs=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_SECRET=' | cut -d= -f2)
+
+        read -r -p "Client ID${ccid:+ [$ccid]}:" clientId
+        if [ -z "$clientId" ]; then clientId=$ccid; fi
+
+        read -r -p "Client Secret${ccs:+ [****]}:" clientSecret
+        if [ -z "$clientSecret" ]; then clientSecret=$ccs; fi
+    else
+        printf "Secret Blob: "
+        secretBlob=$(sed '/}/q') # specific to expected inputs
+    fi
 fi
 
 ## Attach an env file if required for secret injection for testing
