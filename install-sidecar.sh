@@ -171,7 +171,7 @@ if [[ -n "$secretBlob" ]]; then
 elif [[ -n "$clientId" && -n "$clientSecret" ]]; then
     echo "clientId and clientSecret enviroment variables found, client ID being used '$clientId'"
 else
-    if [ -n "$inspect" ]; then
+    if [ -n "$inspect" -a "$inspect" != "[]" ]; then
         ccid=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_ID=' | cut -d= -f2)
         ccs=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_SECRET=' | cut -d= -f2)
 
