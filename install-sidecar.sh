@@ -230,7 +230,7 @@ if [ -n "$envFilePath" ]; then
 fi
 
 if [ -z "$endpoint" ]; then
-    if ! endpoint=$(curl --fail --silent --connect-timeout .5 http://169.254.169.254/latest/meta-data/public-ipv4); then
+    if ! endpoint=$(curl --fail --silent http://169.254.169.254/latest/meta-data/public-ipv4); then
         endpoint=$( (hostname -I 2>/dev/null  || echo "localhost") | awk '{print $1}')
     fi
 else
