@@ -2,6 +2,8 @@
 
 ## Certificates
 
+_The following documentation only applies to sidecars with version >= v4.7_
+
 You have the option of providing a custom certificate to the sidecar. Include the
 following environment variables in an env file:
 
