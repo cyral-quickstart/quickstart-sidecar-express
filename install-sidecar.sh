@@ -221,12 +221,22 @@ fi
 
 if [ -n "$envFilePath" ]; then
     envFilePath=$(realpath "$envFilePath")
-    if [[ -r "$envFilePath" ]]; then
-        envFileParam=("--env-file" "$envFilePath")
-        echo "Injectig env file '${envFileParam[1]}'"
-    else
+    if [[ ! -r "$envFilePath" ]]; then
         echo "Unable to read/mount the env file, '${envFilePath}', skipping!!"
     fi
+    local tmpEnvFilePath="$(mktemp)"
+    local envRealNameTlsCert='CYRAL_CERTIFICATE_MANAGER_TLS_CERT'
+    local envRealNameTlsKey='CYRAL_CERTIFICATE_MANAGER_TLS_KEY'
+    local envRealNameCaCert='CYRAL_CERTIFICATE_MANAGER_CA_CERT'
+    local envRealNameCaKey='CYRAL_CERTIFICATE_MANAGER_CA_KEY'
+    cat "$envFilePath" | \
+        sed "s/SIDECAR_TLS_CERT=/${envRealNameTlsCert}=/g" | \
+        sed "s/SIDECAR_TLS_KEY=/${envRealNameTlsKey}=/g" | \
+        sed "s/SIDECAR_CA_CERT=/${envRealNameCaCert}=/g" | \
+        sed "s/SIDECAR_CA_KEY=/${envRealNameCaKey}=/g" | \
+        > "$tmpEnvFilePath"
+    envFileParam=("--env-file" "$envFilePath")
+    echo "Injectig env file '${envFileParam[1]}'"
 fi
 
 if [ -z "$endpoint" ]; then
