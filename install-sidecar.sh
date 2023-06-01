@@ -235,7 +235,8 @@ if [ -n "$envFilePath" ]; then
         sed "s/CYRAL_SIDECAR_CA_CERT=/${envRealNameCaCert}=/g" | \
         sed "s/CYRAL_SIDECAR_CA_PRIVATE_KEY=/${envRealNameCaKey}=/g" \
         > "$tmpEnvFilePath"
-    envFileParam=("--env-file" "$envFilePath")
+    echo "Created copy of $envFilePath with real var names at $tmpEnvFilePath"
+    envFileParam=("--env-file" "$tmpEnvFilePath")
     echo "Injectig env file '${envFileParam[1]}'"
 fi
 
