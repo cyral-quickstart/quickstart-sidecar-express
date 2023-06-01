@@ -231,9 +231,9 @@ if [ -n "$envFilePath" ]; then
     envRealNameCaKey='CYRAL_CERTIFICATE_MANAGER_CA_KEY'
     cat "$envFilePath" | \
         sed "s/SIDECAR_TLS_CERT=/${envRealNameTlsCert}=/g" | \
-        sed "s/SIDECAR_TLS_KEY=/${envRealNameTlsKey}=/g" | \
+        sed "s/SIDECAR_TLS_PRIVATE_KEY=/${envRealNameTlsKey}=/g" | \
         sed "s/SIDECAR_CA_CERT=/${envRealNameCaCert}=/g" | \
-        sed "s/SIDECAR_CA_KEY=/${envRealNameCaKey}=/g" \
+        sed "s/SIDECAR_CA_PRIVATE_KEY=/${envRealNameCaKey}=/g" \
         > "$tmpEnvFilePath"
     envFileParam=("--env-file" "$envFilePath")
     echo "Injectig env file '${envFileParam[1]}'"
