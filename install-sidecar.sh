@@ -171,7 +171,7 @@ if [[ -n "$secretBlob" ]]; then
 elif [[ -n "$clientId" && -n "$clientSecret" ]]; then
     echo "clientId and clientSecret enviroment variables found, client ID being used '$clientId'"
 else
-    if [ -n "$inspect" -a "$inspect" != "[]" ]; then
+    if [ -n "$inspect" ] && [ "$inspect" != "[]" ]; then
         ccid=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_ID=' | cut -d= -f2)
         ccs=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_SECRET=' | cut -d= -f2)
 
@@ -224,16 +224,16 @@ if [ -n "$envFilePath" ]; then
     if [[ ! -r "$envFilePath" ]]; then
         echo "Unable to read/mount the env file, '${envFilePath}', skipping!!"
     fi
-    local tmpEnvFilePath="$(mktemp)"
-    local envRealNameTlsCert='CYRAL_CERTIFICATE_MANAGER_TLS_CERT'
-    local envRealNameTlsKey='CYRAL_CERTIFICATE_MANAGER_TLS_KEY'
-    local envRealNameCaCert='CYRAL_CERTIFICATE_MANAGER_CA_CERT'
-    local envRealNameCaKey='CYRAL_CERTIFICATE_MANAGER_CA_KEY'
+    tmpEnvFilePath="$(mktemp)"
+    envRealNameTlsCert='CYRAL_CERTIFICATE_MANAGER_TLS_CERT'
+    envRealNameTlsKey='CYRAL_CERTIFICATE_MANAGER_TLS_KEY'
+    envRealNameCaCert='CYRAL_CERTIFICATE_MANAGER_CA_CERT'
+    envRealNameCaKey='CYRAL_CERTIFICATE_MANAGER_CA_KEY'
     cat "$envFilePath" | \
         sed "s/SIDECAR_TLS_CERT=/${envRealNameTlsCert}=/g" | \
         sed "s/SIDECAR_TLS_KEY=/${envRealNameTlsKey}=/g" | \
         sed "s/SIDECAR_CA_CERT=/${envRealNameCaCert}=/g" | \
-        sed "s/SIDECAR_CA_KEY=/${envRealNameCaKey}=/g" | \
+        sed "s/SIDECAR_CA_KEY=/${envRealNameCaKey}=/g" \
         > "$tmpEnvFilePath"
     envFileParam=("--env-file" "$envFilePath")
     echo "Injectig env file '${envFileParam[1]}'"
@@ -299,6 +299,7 @@ fi
 containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
+# shellcheck disable=SC2294
 if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver=${logDriver:-local --log-opt max-size=500m} --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$sidecarId" \
     -e CYRAL_SIDECAR_CLIENT_ID="$clientId" \
