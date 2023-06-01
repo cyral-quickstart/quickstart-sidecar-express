@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Lint shell
         run: |
+          set -x
           export PATHS_BLOB="*.sh"
           export SHELLCHECK_IMAGE_URL=koalaman/shellcheck:v0.9.0
           # This crazy syntax is so that we capture the error codes of commands
