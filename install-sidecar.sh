@@ -221,23 +221,12 @@ fi
 
 if [ -n "$envFilePath" ]; then
     envFilePath=$(realpath "$envFilePath")
-    if [[ ! -r "$envFilePath" ]]; then
+    if [[ -r "$envFilePath" ]]; then
+        envFileParam=("--env-file" "$envFilePath")
+        echo "Injectig env file '${envFileParam[1]}'"
+    else
         echo "Unable to read/mount the env file, '${envFilePath}', skipping!!"
     fi
-    tmpEnvFilePath="$(mktemp)"
-    envRealNameTlsCert='CYRAL_CERTIFICATE_MANAGER_TLS_CERT'
-    envRealNameTlsKey='CYRAL_CERTIFICATE_MANAGER_TLS_KEY'
-    envRealNameCaCert='CYRAL_CERTIFICATE_MANAGER_CA_CERT'
-    envRealNameCaKey='CYRAL_CERTIFICATE_MANAGER_CA_KEY'
-    cat "$envFilePath" | \
-        sed "s/CYRAL_SIDECAR_TLS_CERT=/${envRealNameTlsCert}=/g" | \
-        sed "s/CYRAL_SIDECAR_TLS_PRIVATE_KEY=/${envRealNameTlsKey}=/g" | \
-        sed "s/CYRAL_SIDECAR_CA_CERT=/${envRealNameCaCert}=/g" | \
-        sed "s/CYRAL_SIDECAR_CA_PRIVATE_KEY=/${envRealNameCaKey}=/g" \
-        > "$tmpEnvFilePath"
-    echo "Created copy of $envFilePath with real var names at $tmpEnvFilePath"
-    envFileParam=("--env-file" "$tmpEnvFilePath")
-    echo "Injectig env file '${envFileParam[1]}'"
 fi
 
 if [ -z "$endpoint" ]; then
