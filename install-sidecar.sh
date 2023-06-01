@@ -4,7 +4,7 @@ defaultSidecarVersion="v3.1.2"
 # Optional Parameters
 ###
 if [ -z "$containerRegistry" ]; then
-    containerRegistry="gcr.io/cyralinc"
+    containerRegistry="gcr.io/cyralinc
 else
     echo "containerRegistry enviroment variable found, using '$containerRegistry'"
 fi
