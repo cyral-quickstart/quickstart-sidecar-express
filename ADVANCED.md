@@ -16,8 +16,9 @@ CYRAL_SIDECAR_CA_PRIVATE_KEY=  # private key corresponding to CA cert
 
 Provide the env file to the script with the variable `envFilePath`.
 
-Note that the contents of the environment variables **must be encoded in
-base64**. For instance, if your TLS certificate is:
+Note that the contents of these environment variables **must be encoded in
+base64**. For instance, if your TLS certificate has the following contents in
+the `tls-cert.pem` file:
 
 ```
 -----BEGIN CERTIFICATE-----
@@ -25,10 +26,22 @@ aGVsbG8gd29ybGQK
 -----END CERTIFICATE-----
 ```
 
-You would provide the following input to `CYRAL_SIDECAR_TLS_CERT`:
+And something similar for the private key, stored in `tls-key.pem`:
 
 ```
-CYRAL_SIDECAR_TLS_CERT=LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCmFHVnNiRzhnZDI5eWJHUUsKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+-----BEGIN RSA PRIVATE KEY-----
+aGVsbG8gd29ybGQK
+-----END RSA PRIVATE KEY-----
+```
+
+You could use the following command to create and env file with your custom TLS
+certificate:
+
+```
+cat > .env <<EOF
+CYRAL_SIDECAR_TLS_CERT=$(cat 'tls-cert.pem' | base64 -w 0)
+CYRAL_SIDECAR_TLS_PRIVATE_KEY=$(cat 'tls-key.pem' | base64 -w 0)
+EOF
 ```
 
 To learn more about sidecar certificates, visit the official Cyral docs:
