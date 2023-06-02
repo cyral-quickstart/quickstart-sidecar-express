@@ -1,0 +1,19 @@
+name: Lint
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Lint shell
+        run: ./.github/workflows/lint.sh
+        env:
+          PATHS_GLOB: '*.sh'
+          SHELLCHECK_IMAGE_URL: 'koalaman/shellcheck:v0.9.0'

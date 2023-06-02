@@ -96,3 +96,7 @@ By default standard docker logging will apply.
 Logging can be setup as a step in the install script where you will paste the Fluent-Bit output config.
 
 More info can be found in [LOGGING.md](../main/LOGGING.md)
+
+## Advanced Options
+
+Advanced sidecar options can be found in [ADVANCED.md](../main/ADVANCED.md)
