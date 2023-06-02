@@ -16,9 +16,10 @@ CYRAL_SIDECAR_CA_PRIVATE_KEY=  # private key corresponding to CA cert
 
 Provide the env file to the script with the variable `envFilePath`.
 
-Note that the contents of these environment variables **must be encoded in
-base64**. For instance, if your TLS certificate has the following contents in
-the `tls-cert.pem` file:
+> **Note:** the contents of these environment variables **must be encoded in base64**.
+
+If, for example, your TLS certificate has the following contents in the
+`tls-cert.pem` file:
 
 ```
 -----BEGIN CERTIFICATE-----
@@ -34,7 +35,7 @@ aGVsbG8gd29ybGQK
 -----END RSA PRIVATE KEY-----
 ```
 
-You could use the following command to create and env file with your custom TLS
+You could use the following command to create an env file with your custom TLS
 certificate:
 
 ```
