@@ -233,7 +233,7 @@ if [ -z "$endpoint" ]; then
     endpoint=$(curl --fail --silent --max-time 1 \
         -H "X-aws-ec2-metadata-token: $(curl --max-time 1 --fail --silent \
         -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")" \
-        http://169.254.169.254/latest/meta-data/public-ipv4 || hostname -I 2>/dev/null || echo "manually-set-endpoint" | awk '{print $1}')
+        http://169.254.169.254/latest/meta-data/public-ipv4 || (hostname -I 2>/dev/null || echo "manually-set-endpoint") | awk '{print $1}')
 else
     echo "endpoint enviroment variable found, using '$endpoint'"
 fi
