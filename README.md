@@ -71,6 +71,11 @@ The script will bypass all prompts if the values are provided by environment var
 |clientId|From json blob|
 |clientSecret|From json blob|
 |registryKey| From json blob, Base64 encoded docker login credentials|
+|---SnowFlake|---Required for Snowflake Support|
+|CYRAL_SSO_LOGIN_URL|URL for Snowflake SSO connections. See the Cyral support article, https://cyral.freshdesk.com/a/solutions/articles/44002159876 . This setting holds the Identity provider single sign-on URL of the SAML app.|
+|CYRAL_IDP_CERTIFICATE|Certificiate provided by SAML app|
+|CYRAL_SIDECAR_IDP_PUBLIC_CERT|For Snowflake SSO only. This setting holds the X.509 certificate of the SAML app, formatted as a single line|
+|CYRAL_SIDECAR_IDP_PRIVATE_KEY|Private key for cert provided by SAML app|
 
 ## Environment File for Database Accounts
 

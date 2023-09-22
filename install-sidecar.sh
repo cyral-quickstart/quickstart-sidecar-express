@@ -298,6 +298,10 @@ if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-dr
     -e CYRAL_SIDECAR_ENDPOINT="$endpoint" \
     -e CYRAL_CONTROL_PLANE_HTTPS_PORT="$controlPlaneHttpsPort"\
     -e CYRAL_CONTROL_PLANE_GRPC_PORT="$controPlaneGrpcPort"\
+    -e CYRAL_SSO_LOGIN_URL \
+    -e CYRAL_IDP_CERTIFICATE \
+    -e CYRAL_SIDECAR_IDP_PUBLIC_CERT \
+    -e CYRAL_SIDECAR_IDP_PRIVATE_KEY \
     "${envFileParam[@]}" \
     "${containerRegistry}/cyral-sidecar:${sidecarVersion}" 2>&1) ; then
 
