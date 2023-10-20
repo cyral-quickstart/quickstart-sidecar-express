@@ -4,6 +4,8 @@ A quick start for a Express to get a simple sidecar online quickly!
 
 An install command can be generated on the sidecar deployment page.
 
+Learn more in the [Sidecar Deployment](https://cyral.com/docs/sidecars/deployment/) page.
+
 ## Cloud Deployment Instructions
 
 The above command will work on just about any system, but you can follow the below directions to create a new instance for the sidecar.
