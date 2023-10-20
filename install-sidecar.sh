@@ -1,36 +1,15 @@
 #!/usr/bin/env bash
-defaultSidecarVersion="v3.1.2"
+defaultSidecarVersion="v4.10.0"
 
 # Optional Parameters
 ###
-if [ -z "$containerRegistry" ]; then
-    containerRegistry="gcr.io/cyralinc"
+if [ -z "${CONTAINER_REGISTRY:=$containerRegistry}" ] && [ -n "${REGISTRY_KEY:=$registryKey}" ]; then
+    CONTAINER_REGISTRY="gcr.io/cyralinc"
+elif [ -z "$CONTAINER_REGISTRY" ]; then
+    CONTAINER_REGISTRY="public.ecr.aws/cyral"
 else
-    echo "containerRegistry enviroment variable found, using '$containerRegistry'"
+    echo "CONTAINER_REGISTRY enviroment variable found, using '$CONTAINER_REGISTRY'"
 fi
-
-if [ -z "$fluentBitImage" ]; then
-    fluentBitImage="fluent/fluent-bit:latest"
-else
-    echo "fluentBitImage enviroment variable found, using '$fluentBitImage"
-fi
-
-if [ -z "$fluentConfigFile" ]; then
-    fluentConfigFile="fluent.conf"
-else
-    echo "fluentConfigFile enviroment variable found, using '$fluentConfigFile'"
-fi
-###
-
-fluentConfig="
-[INPUT]
-    Name              forward
-    Listen            0.0.0.0
-    Port              24224
-    Buffer_Chunk_Size 1M
-    Buffer_Max_Size   6M
-
-"
 
 # validate/install commands
 installs=""
@@ -114,6 +93,31 @@ containerStopAndRemove() {
     eval $dockercmd rm "$1" >/dev/null 2>&1
 }
 
+function get_token () {
+    local url_token="https://${CONTROL_PLANE}/v1/users/oidc/token"
+    token=$(curl --silent --fail-with-body --request POST "$url_token" -d grant_type=client_credentials -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" 2>&1)
+    token_error=$?
+}
+
+function get_sidecar_version () {
+    local access_token resp
+    echo "Getting sidecar version from Control Plane..."
+    get_token
+    if [[ $token_error -ne 0 ]]; then
+        echo "Unable to retrieve token!!"
+        echo "Error: $token"        
+        return 1
+    fi
+    access_token=$(echo "$token" | jq -r .access_token)
+    resp=$(curl --silent --fail-with-body --request GET "https://${CONTROL_PLANE}/v2/sidecars/${SIDECAR_ID}" -H "Authorization: Bearer $access_token" 2>&1)
+    if [[ $? -ne 0 ]]; then
+        echo "Error retrieving sidecar version from Control Plane."
+        echo "Error: $resp"
+        return 1
+    fi
+    SIDECAR_VERSION=$(echo "$resp" | jq -r '.sidecar.version // empty')
+}
+
 # pull info from currently running instance
 if inspect=$(eval $dockercmd inspect sidecar 2>/dev/null); then
     # update default version to currently used version
@@ -125,163 +129,90 @@ fi
 
 echo "Sidecar Setup"
 echo "============="
-echo "From the controlplane, click Sidecars and click the + for a new sidecar."
-echo "Select Custom as the sidecar type, give it a name and click Generate."
-echo "Provide a name and click Generate again, you will be prompted to provide the values."
-echo "Values within [] will be used if no value is provided."
-echo "============="
 
 # gather input
-if [ -z "$controlPlaneUrl" ]; then
-    cCP=$(echo "$currentEnv"| grep 'CYRAL_CONTROL_PLANE=' | cut -d= -f2)
-    if [ -n "$cCP" ]; then
-        read -r -p "Control Plane URL [$cCP]: " controlPlaneUrl
-        if [ -z "$controlPlaneUrl" ]; then controlPlaneUrl=$cCP; fi
+if [ -z "${CONTROL_PLANE:=$controlPlaneUrl}" ]; then
+    CONTROL_PLANE=$(echo "$currentEnv"| grep 'CYRAL_CONTROL_PLANE=' | cut -d= -f2)
+    if [ -z "$CONTROL_PLANE" ]; then
+        read -r -p "Control Plane URL (copy/paste current control plane url): " CONTROL_PLANE
     else
-        read -r -p "Control Plane URL (copy/paste current control plane url): " controlPlaneUrl
+        echo "CONTROL_PLANE found from existing sidecar, using '$CONTROL_PLANE'"
     fi
 else
-    echo "controlPlaneUrl enviroment variable found, using '$controlPlaneUrl'"
+    echo "CONTROL_PLANE enviroment variable found, using '$CONTROL_PLANE'"
 fi
 
-if [ -z "$sidecarId" ]; then
-    cSID=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_ID=' | cut -d= -f2)
-    if [ -n "$cSID" ]; then
-        read -r -p "Sidecar ID [$cSID]: " sidecarId
-        if [ -z "$sidecarId" ]; then sidecarId=$cSID; fi
+if [ -z "${SIDECAR_ID:=$sidecarId}" ]; then
+    SIDECAR_ID=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_ID=' | cut -d= -f2)
+    if [ -z "$SIDECAR_ID" ]; then
+        read -r -p "Sidecar ID: " SIDECAR_ID
     else
-        read -r -p "Sidecar ID: " sidecarId
+        echo "SIDECAR_ID found from existing sidecar, using '$SIDECAR_ID'"
     fi
 else
-    echo "sidecarId enviroment variable found, using '$sidecarId'"
+    echo "SIDECAR_ID enviroment variable found, using '$SIDECAR_ID'"
 fi
 
-if [ -z "$sidecarVersion" ]; then
-    read -r -p "Sidecar Version [$defaultSidecarVersion]: " sidecarVersion
-    if [ -z "$sidecarVersion" ]; then
-        sidecarVersion="$defaultSidecarVersion"
+if [[ -n "${CLIENT_ID:=$clientId}" && -n "${CLIENT_SECRET:=$clientSecret}" ]]; then
+    echo "CLIENT_ID and CLIENT_SECRET enviroment variables found, client ID being used '$CLIENT_ID'"
+else
+    CLIENT_ID=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_ID=' | cut -d= -f2)
+    CLIENT_SECRET=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_SECRET=' | cut -d= -f2)
+    if [ -z "$CLIENT_ID" ]; then
+        read -r -p "Client ID:" CLIENT_ID
     fi
-else
-    envFilePrompt="false" # use this to block prompting for env file related to using this script in an automated way
-    echo "sidecarVersion enviroment variable found, using '$sidecarVersion'"
+    if [ -z "$CLIENT_SECRET" ]; then
+        read -r -p "Client Secret:" CLIENT_SECRET
+    fi     
 fi
 
-if [[ -n "$secretBlob" ]]; then
-    echo "secretBlob enviroment variable found, using that"
-elif [[ -n "$clientId" && -n "$clientSecret" ]]; then
-    echo "clientId and clientSecret enviroment variables found, client ID being used '$clientId'"
-else
-    if [ -n "$inspect" ] && [ "$inspect" != "[]" ]; then
-        ccid=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_ID=' | cut -d= -f2)
-        ccs=$(echo "$currentEnv"| grep 'CYRAL_SIDECAR_CLIENT_SECRET=' | cut -d= -f2)
-
-        read -r -p "Client ID${ccid:+ [$ccid]}:" clientId
-        if [ -z "$clientId" ]; then clientId=$ccid; fi
-
-        read -r -p "Client Secret${ccs:+ [****]}:" clientSecret
-        if [ -z "$clientSecret" ]; then clientSecret=$ccs; fi
-    else
-        printf "Secret Blob: "
-        secretBlob=$(sed '/}/q') # specific to expected inputs
+if [ -z "${SIDECAR_VERSION:=$sidecarVersion}" ]; then
+    get_sidecar_version
+    if [ -z "${SIDECAR_VERSION}" ]; then
+        read -r -p "Sidecar Version [${defaultSidecarVersion}]: " sidecarVersion
+        if [ -z "$SIDECAR_VERSION" ]; then
+            SIDECAR_VERSION="$defaultSidecarVersion"
+        fi
     fi
 fi
-
 ## Attach an env file if required for secret injection for testing
-if [[ -z "$envFilePath" ]]; then
-    if [[ -z "$envFilePrompt" ]]; then # if sidecarVersion is set we wont prompt assuming automation
-        read -r -p "Env File Path (blank if not required): " envFilePath
-    else
-        echo "sidecarVersion set, skipping prompt for envFilePath"
-    fi
-else
-    echo "envFilePath enviroment variable found, using '$envFilePath'"
-fi
 
-if [ -n "$outputConfig" ]; then
-    echo "outputConfig found, generating configuration file"
-    logDriver="fluentd"
-    fluentConfig="${fluentConfig}${outputConfig}"
-    echo "$fluentConfig" > "$fluentConfigFile"
-fi
+CONTROL_PLANE=$(echo "$CONTROL_PLANE" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 
-echo "Parsing input"
-controlPlaneUrl=$(echo "$controlPlaneUrl" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
-
-if [ -z "$clientId" ]; then
-    clientId=$(echo "$secretBlob" | jq -r  -e .clientId)
-fi
-
-if [ -z "$clientSecret" ]; then
-    clientSecret=$(echo "$secretBlob" | jq -r -e .clientSecret)
-fi
-
-if [ -n "$secretBlob" ]; then
-    registryKey=$(echo "$secretBlob" | jq -r -e .registryKey)
-fi
-
-if [ -n "$envFilePath" ]; then
-    envFilePath=$(realpath "$envFilePath")
-    if [[ -r "$envFilePath" ]]; then
-        envFileParam=("--env-file" "$envFilePath")
+if [ -n "${ENV_FILE_PATH:=$envFilePath}" ]; then
+    ENV_FILE_PATH=$(realpath "$ENV_FILE_PATH")
+    if [[ -r "$ENV_FILE_PATH" ]]; then
+        envFileParam=("--env-file" "$ENV_FILE_PATH")
         echo "Injectig env file '${envFileParam[1]}'"
     else
         echo "Unable to read/mount the env file, '${envFilePath}', skipping!!"
     fi
+else
+    echo "ENV_FILE_PATH not set, skipping"
 fi
 
-if [ -z "$endpoint" ]; then
-    endpoint=$(curl --fail --silent --max-time 1 \
+if [ -z "${ENDPOINT:=$endpoint}" ]; then
+    ENDPOINT=$(curl --fail --silent --max-time 1 \
         -H "X-aws-ec2-metadata-token: $(curl --max-time 1 --fail --silent \
         -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")" \
         http://169.254.169.254/latest/meta-data/public-ipv4 || (hostname -I 2>/dev/null || echo "manually-set-endpoint") | awk '{print $1}')
 else
-    echo "endpoint enviroment variable found, using '$endpoint'"
+    echo "endpoint enviroment variable found, using '$ENDPOINT'"
 fi
 
-if [ "$logDriver" = "fluentd" ]; then
-    echo "Starting Logger"  
-    containerStopAndRemove "fluent"
-    if ! outFluent=$(eval $dockercmd run -d --name fluent --restart=unless-stopped \
-                    -p 24224:24224 \
-                    --log-driver=local --log-opt max-size=500m \
-                    -v "${PWD}/$fluentConfigFile:/etc/$fluentConfigFile" \
-                    "$fluentBitImage" \
-                    -c "/etc/$fluentConfigFile" 2>&1 \
-                    ); then
-        echo "Problem with Logging configuration!"
-        echo "${outFluent}"
-        exit 1
-    else
-        if ! containerCheck "fluent"; then
-            echo "Problem with Fluent Configuration!"
-            exit 1
-        else
-            echo "Logging successfully setup"
-        fi
-    fi
-fi
-
-if [ -n "$registryKey" ]; then
-    echo "Accessing resources"
-    if ! dLogin=$(echo "$registryKey" | base64 --decode | eval $dockercmd login -u _json_key --password-stdin "$containerRegistry" 2>&1); then
+if [ -n "${REGISTRY_KEY}" ]; then
+    echo "Logging in to image registry"
+    if ! dLogin=$(echo "$REGISTRY_KEY" | base64 --decode | eval $dockercmd login -u _json_key --password-stdin "$CONTAINER_REGISTRY" 2>&1); then
         echo "Problem logging in to registry!"
         echo "$dLogin"
         exit 1
     fi
 fi
 
-# Port selection
-# if not set, default to 443, older versions use 8000 and 9080 respectively
-if [ -z "$controlPlaneHttpsPort" ]; then
-    controlPlaneHttpsPort=443
-fi
-if [ -z "$controPlaneGrpcPort" ]; then
-    controPlaneGrpcPort=443
-fi
-
-echo "Downloading sidecar version ${sidecarVersion}"
-if ! outPull=$(eval $dockercmd pull "${containerRegistry}/cyral-sidecar:${sidecarVersion}"); then
-    echo "Problem pulling images!"
+imagePath="${IMAGEPATH:-${CONTAINER_REGISTRY}/cyral-sidecar:${SIDECAR_VERSION}}"
+echo "Downloading sidecar version ${SIDECAR_VERSION}"
+if ! outPull=$(eval $dockercmd pull $imagePath); then
+    echo "Problem pulling $imagePath!"
     echo "$outPull"
     exit 1
 fi
@@ -290,20 +221,20 @@ containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
 # shellcheck disable=SC2294
-if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver=${logDriver:-local --log-opt max-size=500m} --restart=unless-stopped \
-    -e CYRAL_SIDECAR_ID="$sidecarId" \
-    -e CYRAL_SIDECAR_CLIENT_ID="$clientId" \
-    -e CYRAL_SIDECAR_CLIENT_SECRET="$clientSecret" \
-    -e CYRAL_CONTROL_PLANE="$controlPlaneUrl" \
-    -e CYRAL_SIDECAR_ENDPOINT="$endpoint" \
-    -e CYRAL_CONTROL_PLANE_HTTPS_PORT="$controlPlaneHttpsPort"\
-    -e CYRAL_CONTROL_PLANE_GRPC_PORT="$controPlaneGrpcPort"\
+if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver=local --log-opt max-size=500m --restart=unless-stopped \
+    -e CYRAL_SIDECAR_ID="$SIDECAR_ID" \
+    -e CYRAL_SIDECAR_CLIENT_ID="$CLIENT_ID" \
+    -e CYRAL_SIDECAR_CLIENT_SECRET="$CLIENT_SECRET" \
+    -e CYRAL_CONTROL_PLANE="$CONTROL_PLANE" \
+    -e CYRAL_SIDECAR_ENDPOINT="$ENDPOINT" \
+    -e CYRAL_CONTROL_PLANE_HTTPS_PORT="${CONTROL_PLANE_HTTPS_PORT:-443}"\
+    -e CYRAL_CONTROL_PLANE_GRPC_PORT="${CONTROL_PLANE_GRPC_PORT:-443}"\
     -e CYRAL_SSO_LOGIN_URL \
     -e CYRAL_IDP_CERTIFICATE \
     -e CYRAL_SIDECAR_IDP_PUBLIC_CERT \
     -e CYRAL_SIDECAR_IDP_PRIVATE_KEY \
     "${envFileParam[@]}" \
-    "${containerRegistry}/cyral-sidecar:${sidecarVersion}" 2>&1) ; then
+    "${imagePath}" 2>&1) ; then
 
     echo "Problem starting sidecar!"
     echo "$containerId"

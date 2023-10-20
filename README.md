@@ -1,12 +1,10 @@
-# Quickstart Sidecar Express
+# Sidecar - Express Install
 
 A quick start for a Express to get a simple sidecar online quickly!
 
-Install with a single command
+An install command can be generated on the sidecar deployment page.
 
-```sh
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
-```
+Learn more in the [Sidecar Deployment](https://cyral.com/docs/sidecars/deployment/) page.
 
 ## Cloud Deployment Instructions
 
@@ -53,54 +51,31 @@ The above command will work on just about any system, but you can follow the bel
 
 ## Advanced Setup Options
 
-The script will bypass all prompts if the values are provided by environment variables. Addtional variables are available for the Logging Setup.
+The following command can be used to invoke the script and is what is provided by the Express Install Command
+
+```sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
+```
+
+### Provided by the Control Plane
 
 |Name|Description|
 |---|---|
-|containerRegistry|Where to pull images from|
-|controlPlaneUrl|URL of the control plane|
-|sidecarId|Sidecar ID to use|
-|sidecarVersion|Version to use for the sidecar|
-|envFilePath|Environment variable file to use|
-|endpoint|Address to advertise to the CP for configuration|
-|controlPlaneHttpsPort|Port for controlplane communication, defaults to 443|
-|controPlaneGrpcPort|Port for controlplane communication, defaults to 443|
+|CLIENT_ID|Sidecar credentials|
+|CLIENT_SECRET|Sidecar credentials|
+|CONTROL_PLANE|URL of the control plane|
+|SIDECAR_ID|Sidecar ID to use|
+
+### Optional Variables
+
+|Name|Description|
 |---|---|
-|secretBlob| Json Blob from Sidecar creation|
-|---|---|
-|clientId|From json blob|
-|clientSecret|From json blob|
-|registryKey| From json blob, Base64 encoded docker login credentials|
-|---SnowFlake|---Required for Snowflake Support|
-|CYRAL_SSO_LOGIN_URL|URL for Snowflake SSO connections. See the Cyral support article, https://cyral.freshdesk.com/a/solutions/articles/44002159876 . This setting holds the Identity provider single sign-on URL of the SAML app.|
-|CYRAL_IDP_CERTIFICATE|Certificiate provided by SAML app|
-|CYRAL_SIDECAR_IDP_PUBLIC_CERT|For Snowflake SSO only. This setting holds the X.509 certificate of the SAML app, formatted as a single line|
-|CYRAL_SIDECAR_IDP_PRIVATE_KEY|Private key for cert provided by SAML app|
-
-## Environment File for Database Accounts
-
-If you are using local credentails for testing, as part of the install script you will have the option to use an enviroment file to provide those credentials to the sidecar.
-
-The value of the secret should be in the following format
-
-```json
-{"username":"someuser","password":"somepassword","databaseName":"db1"}
-```
-
-An example of what the env file should look like:
-
-```shell
-REPO_DATA={"username":"someuser","password":"somepassword","databaseName":"db1"}
-```
-
-More details can be found [here](https://cyral.com/docs/v3.0/manage-user-access/database-accounts/#procedure) under the Environment Variable tab.
-
-## Logging Option
-
-By default standard docker logging will apply.
-Logging can be setup as a step in the install script where you will paste the Fluent-Bit output config.
-
-More info can be found in [LOGGING.md](../main/LOGGING.md)
+|SIDECAR_VERSION|Version to use for the sidecar (optional 4.10 and above)|
+|CONTAINER_REGISTRY|Where to pull images from|
+|REGISTRY_KEY| Base64 encoded docker login credentials|
+|ENV_FILE_PATH|Environment variable file to use|
+|ENDPOINT|Address to advertise to the CP for configuration|
+|IMAGEPATH|Will override the image used (path/image/tag). Typicaly used for local development|
 
 ## Advanced Options
 
