@@ -5,7 +5,7 @@ provide these variables to the sidecar.
 
 ## Database Accounts
 
-If you are using local credentails for testing, as part of the install script you will have the option to use an enviroment file to provide those credentials to the sidecar.
+If you are using local credentials for testing, as part of the install script you will have the option to use an environment file to provide those credentials to the sidecar.
 
 The value of the secret should be in the following format
 
