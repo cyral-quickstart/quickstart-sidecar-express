@@ -75,7 +75,9 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickst
 |REGISTRY_KEY| Base64 encoded docker login credentials|
 |ENV_FILE_PATH|Environment variable file to use|
 |ENDPOINT|Address to advertise to the CP for configuration|
-|IMAGEPATH|Will override the image used (path/image/tag). Typicaly used for local development|
+|IMAGE_PATH|Will override the image used (path/image/tag). Typicaly used for local development|
+|LOG_DRIVER|This controls the docker logging driver. default: `local`|
+|LOG_OPT|Additional logging driver options provided as space delimited options. default: `max-size=500m`|
 
 ## Advanced Options
 

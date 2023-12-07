@@ -209,7 +209,7 @@ if [ -n "${REGISTRY_KEY}" ]; then
     fi
 fi
 
-imagePath="${IMAGEPATH:-${CONTAINER_REGISTRY}/cyral-sidecar:${SIDECAR_VERSION}}"
+imagePath="${IMAGE_PATH:-${CONTAINER_REGISTRY}/cyral-sidecar:${SIDECAR_VERSION}}"
 echo "Downloading sidecar version ${SIDECAR_VERSION}"
 if ! outPull=$(eval $dockercmd pull $imagePath); then
     echo "Problem pulling $imagePath!"
@@ -217,11 +217,20 @@ if ! outPull=$(eval $dockercmd pull $imagePath); then
     exit 1
 fi
 
+if [ -n "${LOG_OPT}" ]; then
+    IFS=' ' read -ra log_opt_array <<< "${LOG_OPT}"
+    for opt in "${log_opt_array[@]}"; do
+        log_opt_params+="--log-opt $opt "
+    done
+elif [ -z "${LOG_OPT+x}" ]; then
+    log_opt_params="--log-opt max-size=500m"
+fi
+
 containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
 # shellcheck disable=SC2294
-if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver=local --log-opt max-size=500m --restart=unless-stopped \
+if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver="${LOG_DRIVER:-local}" $log_opt_params --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$SIDECAR_ID" \
     -e CYRAL_SIDECAR_CLIENT_ID="$CLIENT_ID" \
     -e CYRAL_SIDECAR_CLIENT_SECRET="$CLIENT_SECRET" \
