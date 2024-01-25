@@ -95,7 +95,7 @@ containerStopAndRemove() {
 
 function get_token () {
     local url_token="https://${CONTROL_PLANE}/v1/users/oidc/token"
-    token=$(curl --silent --request POST "$url_token" -d grant_type=client_credentials -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" 2>&1)
+    token=$(curl --request POST "$url_token" -d grant_type=client_credentials -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" 2>&1)
     token_error=$?
 }
 
@@ -106,13 +106,12 @@ function get_sidecar_version () {
     if [[ $token_error -ne 0 ]]; then
         echo "Unable to retrieve token!!"
         echo "Error: $token"        
-        return 1
+        exit 1
     fi
     access_token=$(echo "$token" | jq -r .access_token)
-    resp=$(curl --silent --request GET "https://${CONTROL_PLANE}/v2/sidecars/${SIDECAR_ID}" -H "Authorization: Bearer $access_token" 2>&1)
+    resp=$(curl --request GET "https://${CONTROL_PLANE}/v2/sidecars/${SIDECAR_ID}" -H "Authorization: Bearer $access_token" 2>&1)
     if [[ $? -ne 0 ]]; then
-        echo "Error retrieving sidecar version from Control Plane."
-        echo "Error: $resp"
+        echo "Error retrieving sidecar version from Control Plane. Please provide a version"
         return 1
     fi
     SIDECAR_VERSION=$(echo "$resp" | jq -r '.sidecar.version // empty')
