@@ -95,26 +95,35 @@ containerStopAndRemove() {
 
 function get_token () {
     local url_token="https://${CONTROL_PLANE}/v1/users/oidc/token"
-    token=$(curl --request POST "$url_token" -d grant_type=client_credentials -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" 2>&1)
-    token_error=$?
+    local response status_code body
+    response=$(curl --silent -w "%{http_code}" --request POST "$url_token" -d grant_type=client_credentials -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" 2>&1)
+    
+    status_code="${response: -3}"  # Extract the last three characters (HTTP status code)
+    body=$(echo "$response" | sed '$s/...$//')  # Remove the last three characters (HTTP status code)
+
+    if [ "$status_code" -eq 200 ]; then  
+        access_token=$(echo "$body" | jq -r .access_token)
+    else
+        echo "Unable to retrieve token check client id and secret: $status_code - $body"
+        exit "$status_code"
+    fi
 }
 
 function get_sidecar_version () {
-    local access_token resp
+    local response status_code body
     echo "Getting sidecar version from Control Plane..."
     get_token
-    if [[ $token_error -ne 0 ]]; then
-        echo "Unable to retrieve token!!"
-        echo "Error: $token"        
-        exit 1
-    fi
-    access_token=$(echo "$token" | jq -r .access_token)
-    resp=$(curl --request GET "https://${CONTROL_PLANE}/v2/sidecars/${SIDECAR_ID}" -H "Authorization: Bearer $access_token" 2>&1)
-    if [[ $? -ne 0 ]]; then
+
+    response=$(curl --silent -w "%{http_code}" --request GET "https://${CONTROL_PLANE}/v2/sidecars/${SIDECAR_ID}" -H "Authorization: Bearer $access_token")
+
+    status_code="${response: -3}"  # Extract the last three characters (HTTP status code)
+    body=$(echo "$response" | sed '$s/...$//')  # Remove the last three characters (HTTP status code)
+
+    if [[ "$status_code" -ne 200 ]]; then
         echo "Error retrieving sidecar version from Control Plane. Please provide a version"
         return 1
     fi
-    SIDECAR_VERSION=$(echo "$resp" | jq -r '.sidecar.version // empty')
+    SIDECAR_VERSION=$(echo "$body" | jq -r '.sidecar.version // empty')
 }
 
 # pull info from currently running instance
