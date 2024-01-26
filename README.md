@@ -54,6 +54,10 @@ The above command will work on just about any system, but you can follow the bel
 The following command can be used to invoke the script and is what is provided by the Express Install Command
 
 ```sh
+CLIENT_ID=<client id> \
+CLIENT_SECRET=<client secret> \
+SIDECAR_ID=<sidecar id> \
+CONTROL_PLANE=<control plane host> \
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
 ```
 
@@ -70,7 +74,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickst
 
 |Name|Description|
 |---|---|
-|SIDECAR_VERSION|Version to use for the sidecar (optional 4.10 and above)|
+|SIDECAR_VERSION|Version to use for the sidecar **(required below version 4.10)**|
 |CONTAINER_REGISTRY|Where to pull images from|
 |REGISTRY_KEY| Base64 encoded docker login credentials|
 |ENV_FILE_PATH|Environment variable file to use|
