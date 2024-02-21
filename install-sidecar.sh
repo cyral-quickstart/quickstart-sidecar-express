@@ -238,7 +238,7 @@ containerStopAndRemove "sidecar"
 
 echo "Starting Sidecar"
 # shellcheck disable=SC2294
-if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver="${LOG_DRIVER:-local}" $log_opt_params --restart=unless-stopped \
+if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-driver="${LOG_DRIVER:-json-file}" $log_opt_params --restart=unless-stopped \
     -e CYRAL_SIDECAR_ID="$SIDECAR_ID" \
     -e CYRAL_SIDECAR_CLIENT_ID="$CLIENT_ID" \
     -e CYRAL_SIDECAR_CLIENT_SECRET="$CLIENT_SECRET" \
