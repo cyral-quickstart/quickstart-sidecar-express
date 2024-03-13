@@ -250,6 +250,7 @@ if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-dr
     -e CYRAL_IDP_CERTIFICATE \
     -e CYRAL_SIDECAR_IDP_PUBLIC_CERT \
     -e CYRAL_SIDECAR_IDP_PRIVATE_KEY \
+    -e LOG_LEVEL="${LOG_LEVEL:-"info"}" \
     "${envFileParam[@]}" \
     "${imagePath}" 2>&1) ; then
 
