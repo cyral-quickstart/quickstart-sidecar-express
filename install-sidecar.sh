@@ -246,6 +246,7 @@ if ! containerId=$(eval $dockercmd run -d --name sidecar --network=host --log-dr
     -e CYRAL_SIDECAR_ENDPOINT="$ENDPOINT" \
     -e CYRAL_CONTROL_PLANE_HTTPS_PORT="${CONTROL_PLANE_HTTPS_PORT:-443}"\
     -e CYRAL_CONTROL_PLANE_GRPC_PORT="${CONTROL_PLANE_GRPC_PORT:-443}"\
+    -e IS_DYNAMIC_VERSION="true" \
     -e CYRAL_SSO_LOGIN_URL \
     -e CYRAL_IDP_CERTIFICATE \
     -e CYRAL_SIDECAR_IDP_PUBLIC_CERT \
