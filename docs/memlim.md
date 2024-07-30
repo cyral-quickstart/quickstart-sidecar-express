@@ -1,6 +1,6 @@
 # Memory Limiting
 
-Each of the individual services within the sidecar have a default
+Each of the individual services within the sidecar has a default
 memory limit. The memory limit is a maximum number of bytes that a service is 
 allowed to consume. This is useful to prevent a single service from consuming
 all available memory on the container and causing other services to fail as a
