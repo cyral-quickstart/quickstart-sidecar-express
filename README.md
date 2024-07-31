@@ -88,5 +88,6 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickst
 Instructions for advanced deployment configurations are available for the following topics:
 
 * [Database accounts](./docs/database-accounts.md)
+* [Memory limits](./docs/memlim.md)
 * [Sidecar certificates](./docs/certificates.md)
 * [Snowflake configuration](./docs/snowflake.md)
