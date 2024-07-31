@@ -4,40 +4,32 @@ Each of the individual services within the sidecar has a default
 memory limit. The memory limit is a maximum number of bytes that a service is 
 allowed to consume. This is useful to prevent a single service from consuming
 all available memory on the container and causing other services to fail as a
-result. Currently, each "wire" service has a default memory limit of `512MB`
-while other services are limited to `128MB`.
+result.
 
-Users can override the default memory limits if desired by setting various 
-environment variables as detailed below.
+Refer to the [Memory Limits](https://cyral.com/docs/sidecars/deployment/memory-limits)
+page of our public docs for more details.
 
-## Environment Variables
+In order to change the memory limits for your sidecar container, override the
+default settings using the [environment variables](https://cyral.com/docs/sidecars/deployment/memory-limits#environment-variables)
+detailed in our public docs.
 
-The following environment variables can be set to override the default memory
-limits.
+## Setting memory limits via environment file
 
-Wires (default `512MB` since `v4.15.1` and `128MB` on all previous versions):
+An environment file can be used to configure the memory limits for the services.
+The following is an example file to set the memory limit for the PostgreSQL and SQLServer
+wires services to `1GB`:
 
-* `CYRAL_DREMIO_WIRE_MAX_MEM`
-* `CYRAL_DYNAMODB_WIRE_MAX_MEM`
-* `CYRAL_MONGODB_WIRE_MAX_MEM`
-* `CYRAL_MYSQL_WIRE_MAX_MEM`
-* `CYRAL_ORACLE_WIRE_MAX_MEM`
-* `CYRAL_PG_WIRE_MAX_MEM`
-* `CYRAL_S3_WIRE_MAX_MEM`
-* `CYRAL_SNOWFLAKE_WIRE_MAX_MEM`
-* `CYRAL_SQLSERVER_WIRE_MAX_MEM`
+```bash
+CYRAL_PG_WIRE_MAX_MEM=1024
+CYRAL_SQLSERVER_WIRE_MAX_MEM=1024
+```
 
-Misc. services (default `128MB`):
+The initialization parameter `ENV_FILE_PATH` can be used to provide the path to
+the environment file to the express installer. Assuming the file is stored in
+`/Users/root/env_sidecar`, the new configuration can be provided to the 
+express installer by prepending this variable declaration to the command
+retrieved from the Cyral control plane as follows:
 
-* `ALERTER_MAX_SYS_SIZE_MB`
-* `CYRAL_AUTHENTICATOR_MAX_SYS_SIZE_MB`
-* `FORWARD_PROXY_MAX_SYS_SIZE_MB`
-* `NGINX_PROXY_HELPER_MAX_SYS_SIZE_MB`
-* `SERVICE_MONITOR_MAX_SYS_SIZE_MB`
-
-Values should be set in megabytes (`MB`). For example, to set the memory limit
-for the PostgreSQL wire service to `1GB`, set `CYRAL_PG_WIRE_MAX_MEM=1024`.
-
-The environment variables passed to the sidecar container are set in the file
-`/home/ec2-user/.env`. Any changes to the memory limits as environment variables
-should be made in this file (see next section).
+```bash
+ENV_FILE_PATH=/Users/root/env_sidecar CLIENT_ID=<client-id> CLIENT_SECRET=-<client-secret> SIDECAR_ID=<sidecar-id> CONTROL_PLANE=<control-plane> bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
+```
