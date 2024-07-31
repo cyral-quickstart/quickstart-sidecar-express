@@ -49,7 +49,7 @@ The above command will work on just about any system, but you can follow the bel
 
 </details>
 
-## Advanced Setup Options
+## Custom Setup Options
 
 The following command can be used to invoke the script and is what is provided by the Express Install Command
 
@@ -61,28 +61,32 @@ CONTROL_PLANE=<control plane host> \
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
 ```
 
-### Provided by the Control Plane
+### Parameters provided by the control plane
 
 |Name|Description|
 |---|---|
-|CLIENT_ID|Sidecar credentials|
-|CLIENT_SECRET|Sidecar credentials|
-|CONTROL_PLANE|URL of the control plane|
-|SIDECAR_ID|Sidecar ID to use|
+|`CLIENT_ID`|Sidecar credentials|
+|`CLIENT_SECRET`|Sidecar credentials|
+|`CONTROL_PLANE`|URL of the control plane|
+|`SIDECAR_ID`|Sidecar ID to use|
 
-### Optional Variables
+### Optional parameters
 
 |Name|Description|
 |---|---|
-|SIDECAR_VERSION|Version to use for the sidecar **(required below version 4.10)**|
-|CONTAINER_REGISTRY|Where to pull images from|
-|REGISTRY_KEY| Base64 encoded docker login credentials|
-|ENV_FILE_PATH|Environment variable file to use|
-|ENDPOINT|Address to advertise to the CP for configuration|
-|IMAGE_PATH|Will override the image used (path/image/tag). Typicaly used for local development|
-|LOG_DRIVER|This controls the docker logging driver. default: `local`|
-|LOG_OPT|Additional logging driver options provided as space delimited options. default: `max-size=500m`|
+|`SIDECAR_VERSION`|Version to use for the sidecar **(required below version v4.10)**|
+|`CONTAINER_REGISTRY`|Where to pull images from|
+|`REGISTRY_KEY`| Base64 encoded docker login credentials|
+|`ENV_FILE_PATH`|Environment variable file to use|
+|`ENDPOINT`|Address to advertise to the CP for configuration|
+|`IMAGE_PATH`|Will override the image used (path/image/tag). Typicaly used for local development|
+|`LOG_DRIVER`|This controls the docker logging driver. default: `local`|
+|`LOG_OPT`|Additional logging driver options provided as space delimited options. default: `max-size=500m`|
 
-## Advanced Options
+## Advanced
 
-Advanced sidecar options can be found in [ADVANCED.md](../main/ADVANCED.md)
+Instructions for advanced deployment configurations are available for the following topics:
+
+* [Database accounts](./docs/database-accounts.md)
+* [Sidecar certificates](./docs/certificates.md)
+* [Snowflake configuration](./docs/snowflake.md)
