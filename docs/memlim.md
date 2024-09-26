@@ -13,9 +13,17 @@ In order to change the memory limits for your sidecar container, override the
 default settings using the [environment variables](https://cyral.com/docs/sidecars/deployment/memory-limits#environment-variables)
 detailed in our public docs.
 
-## Setting memory limits via environment file
+The following is an example to increase the memory limit of the PostgreSQL
+wire service to `1GB` on the call to the express installer. The environment
+variable with the new configuration can be provided to the express installer
+by prepending the command retrieved from the Cyral control plane as follows:
 
-An environment file can be used to configure the memory limits for the services.
+
+```bash
+CYRAL_PG_WIRE_MAX_MEM=1024 CLIENT_ID=<client-id> CLIENT_SECRET=-<client-secret> SIDECAR_ID=<sidecar-id> CONTROL_PLANE=<control-plane> bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
+```
+
+An environment file can also be used to configure the memory limits for the services.
 The following is an example file to set the memory limit for the PostgreSQL and SQLServer
 wires services to `1GB`:
 
@@ -26,9 +34,7 @@ CYRAL_SQLSERVER_WIRE_MAX_MEM=1024
 
 The initialization parameter `ENV_FILE_PATH` can be used to provide the path to
 the environment file to the express installer. Assuming the file is stored in
-`/Users/root/env_sidecar`, the new configuration can be provided to the 
-express installer by prepending this variable declaration to the command
-retrieved from the Cyral control plane as follows:
+`/Users/root/env_sidecar`, the new configuration can be provided as follows:
 
 ```bash
 ENV_FILE_PATH=/Users/root/env_sidecar CLIENT_ID=<client-id> CLIENT_SECRET=-<client-secret> SIDECAR_ID=<sidecar-id> CONTROL_PLANE=<control-plane> bash -c "$(curl -fsSL https://raw.githubusercontent.com/cyral-quickstart/quickstart-sidecar-express/main/install-sidecar.sh)"
